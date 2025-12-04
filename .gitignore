@@ -1,0 +1,6 @@
+chathistory/
+data/
+**/__pycache__/
+.env
+.venv/
+faiss_store/
