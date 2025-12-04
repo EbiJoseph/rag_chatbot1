@@ -1,15 +1,18 @@
 from typing import List, Any
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import numpy as np
+import boto3
+import json
 from src.data_loader import load_all_documents
 
 class EmbeddingPipeline:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2", chunk_size: int = 1000, chunk_overlap: int = 200):
+    def __init__(self, model_id: str = "amazon.titan-embed-text-v1", chunk_size: int = 1000, chunk_overlap: int = 200, region_name: str = "us-east-1"):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.model = SentenceTransformer(model_name)
-        print(f"[INFO] Loaded embedding model: {model_name}")
+        self.model_id = model_id
+        self.region_name = region_name
+        self.bedrock = boto3.client("bedrock-runtime", region_name=self.region_name)
+        print(f"[INFO] Using Amazon Bedrock embedding model: {model_id}")
 
     def chunk_documents(self, documents: List[Any]) -> List[Any]:
         splitter = RecursiveCharacterTextSplitter(
@@ -24,14 +27,22 @@ class EmbeddingPipeline:
 
     def embed_chunks(self, chunks: List[Any]) -> np.ndarray:
         texts = [chunk.page_content for chunk in chunks]
-        print(f"[INFO] Generating embeddings for {len(texts)} chunks...")
-        embeddings = self.model.encode(texts, show_progress_bar=True)
+        print(f"[INFO] Generating embeddings for {len(texts)} chunks using Amazon Bedrock...")
+        embeddings = []
+        for text in texts:
+            response = self.bedrock.invoke_model(
+                modelId=self.model_id,
+                body=json.dumps({"inputText": text}).encode("utf-8")
+            )
+            response_body = json.loads(response["body"].read())
+            embed = np.array(response_body["embedding"])
+            embeddings.append(embed)
+        embeddings = np.stack(embeddings)
         print(f"[INFO] Embeddings shape: {embeddings.shape}")
         return embeddings
 
 # Example usage
 if __name__ == "__main__":
-    
     docs = load_all_documents("data")
     emb_pipe = EmbeddingPipeline()
     chunks = emb_pipe.chunk_documents(docs)
