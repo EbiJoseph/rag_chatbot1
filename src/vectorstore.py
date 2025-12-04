@@ -73,7 +73,7 @@ class FaissVectorStore:
         print(f"[INFO] Querying vector store for: '{query_text}'")
         # Use Bedrock to embed the query text
         response = self.bedrock.invoke_model(
-            modelId=self.llm_model,
+            modelId=self.embedding_model,
             body=json.dumps({"inputText": query_text}).encode("utf-8")
         )
         response_body = json.loads(response["body"].read())
