@@ -1,3 +1,5 @@
+from fastapi import UploadFile, File
+from fastapi.responses import JSONResponse
 from fastapi import FastAPI
 import os
 import shutil
@@ -53,6 +55,7 @@ async def chat_endpoint(request: ChatRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
 @app.get("/home")
 async def home_status():
     # Check embedding model
@@ -84,3 +87,24 @@ async def home_status():
         "llm": llm_status,
         "message": "Backend is ready for query."
     }
+
+    # Endpoint for file upload (for React frontend)
+@app.post("/upload")
+async def upload_files(files: list[UploadFile] = File(...)):
+    UPLOAD_DIR = "data/uploaded"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    saved_files = []
+    for file in files:
+        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        saved_files.append(file.filename)
+    return {"status": "success", "files": saved_files}
+
+# Endpoint to list embedded files (for React frontend)
+@app.get("/embedded_files")
+async def list_embedded_files():
+    EMBEDDED_DIR = "data/embedded"
+    os.makedirs(EMBEDDED_DIR, exist_ok=True)
+    files = [f for f in os.listdir(EMBEDDED_DIR) if os.path.isfile(os.path.join(EMBEDDED_DIR, f))]
+    return JSONResponse(content={"files": files})

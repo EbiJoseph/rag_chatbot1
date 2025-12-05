@@ -15,6 +15,7 @@ def load_all_documents(data_dir: str) -> List[Any]:
     print(f"[DEBUG] Data path: {data_path}")
     documents = []
 
+
     # PDF files
     pdf_files = list(data_path.glob('*.pdf'))
     print(f"[DEBUG] Found {len(pdf_files)} PDF files: {[str(f) for f in pdf_files]}")
@@ -22,9 +23,12 @@ def load_all_documents(data_dir: str) -> List[Any]:
         print(f"[DEBUG] Loading PDF: {pdf_file}")
         try:
             loader = PyPDFLoader(str(pdf_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} PDF docs from {pdf_file}")
-            documents.extend(loaded)
+            pages = loader.load_and_split()
+            for page_no, page in enumerate(pages, start=1):
+                page.metadata["source"] = pdf_file.name
+                page.metadata["page"] = page_no
+                documents.append(page)
+            print(f"[DEBUG] Loaded {len(pages)} PDF pages from {pdf_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load PDF {pdf_file}: {e}")
 
@@ -35,9 +39,12 @@ def load_all_documents(data_dir: str) -> List[Any]:
         print(f"[DEBUG] Loading TXT: {txt_file}")
         try:
             loader = TextLoader(str(txt_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} TXT docs from {txt_file}")
-            documents.extend(loaded)
+            results = loader.load()
+            for r in results:
+                r.metadata["source"] = txt_file.name
+                r.metadata["page"] = 1
+                documents.append(r)
+            print(f"[DEBUG] Loaded {len(results)} TXT docs from {txt_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load TXT {txt_file}: {e}")
 
@@ -48,9 +55,12 @@ def load_all_documents(data_dir: str) -> List[Any]:
         print(f"[DEBUG] Loading CSV: {csv_file}")
         try:
             loader = CSVLoader(str(csv_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} CSV docs from {csv_file}")
-            documents.extend(loaded)
+            results = loader.load()
+            for r in results:
+                r.metadata["source"] = csv_file.name
+                r.metadata["page"] = 1
+                documents.append(r)
+            print(f"[DEBUG] Loaded {len(results)} CSV docs from {csv_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load CSV {csv_file}: {e}")
 
@@ -61,9 +71,12 @@ def load_all_documents(data_dir: str) -> List[Any]:
         print(f"[DEBUG] Loading Excel: {xlsx_file}")
         try:
             loader = UnstructuredExcelLoader(str(xlsx_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} Excel docs from {xlsx_file}")
-            documents.extend(loaded)
+            results = loader.load()
+            for r in results:
+                r.metadata["source"] = xlsx_file.name
+                r.metadata["page"] = 1
+                documents.append(r)
+            print(f"[DEBUG] Loaded {len(results)} Excel docs from {xlsx_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load Excel {xlsx_file}: {e}")
 
@@ -74,9 +87,12 @@ def load_all_documents(data_dir: str) -> List[Any]:
         print(f"[DEBUG] Loading Word: {docx_file}")
         try:
             loader = Docx2txtLoader(str(docx_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} Word docs from {docx_file}")
-            documents.extend(loaded)
+            results = loader.load()
+            for r in results:
+                r.metadata["source"] = docx_file.name
+                r.metadata["page"] = 1
+                documents.append(r)
+            print(f"[DEBUG] Loaded {len(results)} Word docs from {docx_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load Word {docx_file}: {e}")
 
@@ -87,9 +103,12 @@ def load_all_documents(data_dir: str) -> List[Any]:
         print(f"[DEBUG] Loading JSON: {json_file}")
         try:
             loader = JSONLoader(str(json_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} JSON docs from {json_file}")
-            documents.extend(loaded)
+            results = loader.load()
+            for r in results:
+                r.metadata["source"] = json_file.name
+                r.metadata["page"] = 1
+                documents.append(r)
+            print(f"[DEBUG] Loaded {len(results)} JSON docs from {json_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load JSON {json_file}: {e}")
 

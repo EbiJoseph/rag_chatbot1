@@ -35,7 +35,11 @@ class FaissVectorStore:
         if embeddings is None or len(embeddings) == 0:
             print("[INFO] No embeddings generated. Skipping FAISS store build.")
             return
-        metadatas = [{"text": chunk.page_content} for chunk in chunks]
+        metadatas = []
+        for chunk in chunks:
+            meta = dict(chunk.metadata) if hasattr(chunk, 'metadata') else {}
+            meta["text"] = chunk.page_content
+            metadatas.append(meta)
         self.add_embeddings(np.array(embeddings).astype('float32'), metadatas)
         self.save()
         print(f"[INFO] Vector store built and saved to {self.persist_dir}")
@@ -74,9 +78,6 @@ class FaissVectorStore:
         print(f"[INFO] Loaded Faiss index and metadata from {self.persist_dir}")
 
     def search(self, query_embedding: np.ndarray, top_k: int = 5):
-        if self.index is None:
-            print("[INFO] No FAISS index available. Returning empty search results.")
-            return []
         D, I = self.index.search(query_embedding, top_k)
         results = []
         for idx, dist in zip(I[0], D[0]):
@@ -86,9 +87,6 @@ class FaissVectorStore:
 
     def query(self, query_text: str, top_k: int = 5):
         print(f"[INFO] Querying vector store for: '{query_text}'")
-        if self.index is None:
-            print("[INFO] No FAISS index available. Returning empty query results.")
-            return []
         # Use Bedrock to embed the query text
         response = self.bedrock.invoke_model(
             modelId=self.embedding_model,

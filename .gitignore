@@ -5,3 +5,4 @@ data/
 .venv/
 faiss_store/
 notebook/
+frontend/node_modules/
