@@ -4,3 +4,4 @@ data/
 .env
 .venv/
 faiss_store/
+notebook/

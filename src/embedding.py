@@ -3,10 +3,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import numpy as np
 import boto3
 import json
+import os, shutil
 from src.data_loader import load_all_documents
 
 class EmbeddingPipeline:
-    def __init__(self, model_id: str = "amazon.titan-embed-text-v1", chunk_size: int = 1000, chunk_overlap: int = 200, region_name: str = "us-east-1"):
+    def __init__(self, model_id: str = "amazon.titan-embed-text-v2:0", chunk_size: int = 1000, chunk_overlap: int = 200, region_name: str = "us-east-1"):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.model_id = model_id
@@ -25,10 +26,13 @@ class EmbeddingPipeline:
         print(f"[INFO] Split {len(documents)} documents into {len(chunks)} chunks.")
         return chunks
 
-    def embed_chunks(self, chunks: List[Any]) -> np.ndarray:
+    def embed_chunks(self, chunks: List[Any], move_files: bool = True, uploaded_dir: str = "data/uploaded", embedded_dir: str = "data/embedded") -> np.ndarray:
         texts = [chunk.page_content for chunk in chunks]
         print(f"[INFO] Generating embeddings for {len(texts)} chunks using Amazon Bedrock...")
         embeddings = []
+        if len(texts) == 0:
+            print("[INFO] No chunks to embed. Returning empty array.")
+            return np.array([])
         for text in texts:
             response = self.bedrock.invoke_model(
                 modelId=self.model_id,
@@ -39,12 +43,22 @@ class EmbeddingPipeline:
             embeddings.append(embed)
         embeddings = np.stack(embeddings)
         print(f"[INFO] Embeddings shape: {embeddings.shape}")
+        if move_files:
+            self.move_uploaded_to_embedded(uploaded_dir, embedded_dir)
         return embeddings
+    def move_uploaded_to_embedded(self, uploaded_dir: str = "data/uploaded", embedded_dir: str = "data/embedded"):
+        os.makedirs(embedded_dir, exist_ok=True)
+        for filename in os.listdir(uploaded_dir):
+            src = os.path.join(uploaded_dir, filename)
+            dst = os.path.join(embedded_dir, filename)
+            if os.path.isfile(src):
+                shutil.move(src, dst)
+        print(f"[INFO] Moved files from {uploaded_dir} to {embedded_dir}")
 
 # Example usage
-if __name__ == "__main__":
-    docs = load_all_documents("data")
-    emb_pipe = EmbeddingPipeline()
-    chunks = emb_pipe.chunk_documents(docs)
-    embeddings = emb_pipe.embed_chunks(chunks)
-    print("[INFO] Example embedding:", embeddings[0] if len(embeddings) > 0 else None)
+# if __name__ == "__main__":
+#     docs = load_all_documents("data")
+#     emb_pipe = EmbeddingPipeline()
+#     chunks = emb_pipe.chunk_documents(docs)
+#     embeddings = emb_pipe.embed_chunks(chunks)
+#     print("[INFO] Example embedding:", embeddings[0] if len(embeddings) > 0 else None)
