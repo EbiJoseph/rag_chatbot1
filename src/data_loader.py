@@ -32,6 +32,7 @@ def load_all_documents(data_dir: str) -> List[Any]:
         except Exception as e:
             print(f"[ERROR] Failed to load PDF {pdf_file}: {e}")
 
+
     # TXT files
     txt_files = list(data_path.glob('*.txt'))
     print(f"[DEBUG] Found {len(txt_files)} TXT files: {[str(f) for f in txt_files]}")
@@ -47,6 +48,22 @@ def load_all_documents(data_dir: str) -> List[Any]:
             print(f"[DEBUG] Loaded {len(results)} TXT docs from {txt_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load TXT {txt_file}: {e}")
+
+    # HTML files
+    html_files = list(data_path.glob('*.html'))
+    print(f"[DEBUG] Found {len(html_files)} HTML files: {[str(f) for f in html_files]}")
+    for html_file in html_files:
+        print(f"[DEBUG] Loading HTML: {html_file}")
+        try:
+            loader = TextLoader(str(html_file))
+            results = loader.load()
+            for r in results:
+                r.metadata["source"] = html_file.name
+                r.metadata["page"] = 1
+                documents.append(r)
+            print(f"[DEBUG] Loaded {len(results)} HTML docs from {html_file}")
+        except Exception as e:
+            print(f"[ERROR] Failed to load HTML {html_file}: {e}")
 
     # CSV files
     csv_files = list(data_path.glob('*.csv'))
