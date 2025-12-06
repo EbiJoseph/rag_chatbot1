@@ -4,6 +4,8 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader, CSVLoa
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders.excel import UnstructuredExcelLoader
 from langchain_community.document_loaders import JSONLoader
+from bs4 import BeautifulSoup
+from langchain_core.documents import Document
 
 def load_all_documents(data_dir: str) -> List[Any]:
     """
@@ -49,19 +51,24 @@ def load_all_documents(data_dir: str) -> List[Any]:
         except Exception as e:
             print(f"[ERROR] Failed to load TXT {txt_file}: {e}")
 
-    # HTML files
+    # HTML files (efficient loader: extract visible text only)
     html_files = list(data_path.glob('*.html'))
     print(f"[DEBUG] Found {len(html_files)} HTML files: {[str(f) for f in html_files]}")
     for html_file in html_files:
         print(f"[DEBUG] Loading HTML: {html_file}")
         try:
-            loader = TextLoader(str(html_file))
-            results = loader.load()
-            for r in results:
-                r.metadata["source"] = html_file.name
-                r.metadata["page"] = 1
-                documents.append(r)
-            print(f"[DEBUG] Loaded {len(results)} HTML docs from {html_file}")
+            with open(html_file, encoding="utf-8", errors="ignore") as f:
+                soup = BeautifulSoup(f, "html.parser")
+                # Remove script and style elements
+                for tag in soup(["script", "style", "noscript"]):
+                    tag.decompose()
+                text = soup.get_text(separator="\n", strip=True)
+                # Remove excessive blank lines
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                clean_text = "\n".join(lines)
+                doc = Document(page_content=clean_text, metadata={"source": html_file.name, "page": 1})
+                documents.append(doc)
+            print(f"[DEBUG] Loaded HTML text from {html_file}")
         except Exception as e:
             print(f"[ERROR] Failed to load HTML {html_file}: {e}")
 
@@ -130,7 +137,7 @@ def load_all_documents(data_dir: str) -> List[Any]:
             print(f"[ERROR] Failed to load JSON {json_file}: {e}")
 
     print(f"[DEBUG] Total loaded documents: {len(documents)}")
-    return documents
+    return documents    
 
 # Example usage
 # if __name__ == "__main__":

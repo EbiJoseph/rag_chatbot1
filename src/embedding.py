@@ -1,11 +1,10 @@
 from typing import List, Any
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import numpy as np
-import boto3
-import json
 import os, shutil
-from data_loader import load_all_documents
-
+from src.data_loader import load_all_documents
+from langchain_aws import BedrockEmbeddings
+from tqdm import tqdm
 # Load environment variables from .env file
 from dotenv import load_dotenv
 load_dotenv()
@@ -16,8 +15,8 @@ class EmbeddingPipeline:
         self.chunk_overlap = chunk_overlap
         self.model_id = model_id
         self.region_name = region_name
-        self.bedrock = boto3.client("bedrock-runtime", region_name=self.region_name)
-        print(f"[INFO] Using Amazon Bedrock embedding model: {model_id}")
+        self.embedder = BedrockEmbeddings(model_id=self.model_id, region_name=self.region_name)
+        print(f"[INFO] Using LangChain BedrockEmbeddings model: {model_id}")
 
     def chunk_documents(self, documents: List[Any]) -> List[Any]:
         splitter = RecursiveCharacterTextSplitter(
@@ -30,24 +29,18 @@ class EmbeddingPipeline:
         print(f"[INFO] Split {len(documents)} documents into {len(chunks)} chunks.")
         return chunks
 
-    def embed_chunks(self, chunks: List[Any], move_files: bool = True, uploaded_dir: str = "data/uploaded", embedded_dir: str = "data/embedded") -> np.ndarray:
+    def embed_chunks(self, chunks: List[Any], move_files: bool = True, uploaded_dir: str = "data/uploaded", embedded_dir: str = "data/embedded", batch_size: int = 32) -> np.ndarray:
+        
         texts = [chunk.page_content for chunk in chunks]
-        print(f"[INFO] Generating embeddings for {len(texts)} chunks using Amazon Bedrock...")
-        embeddings = []
+        print(f"[INFO] Generating embeddings for {len(texts)} chunks using LangChain BedrockEmbeddings (batch size={batch_size})...")
         if len(texts) == 0:
             print("[INFO] No chunks to embed. Returning empty array.")
             return np.array([])
-        for idx, text in enumerate(texts, start=1):
-            if idx % 100 == 0:
-                print(f"[INFO] Processed {idx}/{len(texts)} chunks...")
-
-            response = self.bedrock.invoke_model(
-                modelId=self.model_id,
-                body=json.dumps({"inputText": text}).encode("utf-8")
-            )
-            response_body = json.loads(response["body"].read())
-            embed = np.array(response_body["embedding"])
-            embeddings.append(embed)
+        embeddings = []
+        for i in tqdm(range(0, len(texts), batch_size), desc="Embedding batches"):
+            batch = texts[i:i+batch_size]
+            batch_embeds = self.embedder.embed_documents(batch)
+            embeddings.extend(batch_embeds)
         embeddings = np.stack(embeddings)
         print(f"[INFO] Embeddings shape: {embeddings.shape}")
         if move_files:

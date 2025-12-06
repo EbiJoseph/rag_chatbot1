@@ -17,3 +17,4 @@ langchain_aws
 fastapi
 streamlit
 python-multipart
+bs4
