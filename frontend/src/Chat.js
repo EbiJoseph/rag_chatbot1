@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Box, Typography, Paper, TextField, Button, Divider } from "@mui/material";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
 
 export default function Chat() {
   const [messages, setMessages] = useState([]);
@@ -39,9 +40,18 @@ export default function Chat() {
       <Paper sx={{ flex: 1, overflowY: "auto", mb: 2, p: 2, bgcolor: "#fafafa" }}>
         {messages.map((msg, idx) => (
           <Box key={idx} sx={{ textAlign: msg.role === "user" ? "right" : "left", mb: 1 }}>
-            <Typography variant="body2" color={msg.role === "user" ? "primary" : "textSecondary"}>
-              <b>{msg.role === "user" ? "You" : "Bot"}:</b> {msg.content}
-            </Typography>
+              {msg.role === "user" ? (
+                <Typography variant="body2" color="primary">
+                  <b>You:</b> {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
+                </Typography>
+              ) : (
+                <Paper elevation={0} sx={{ p: 1, bgcolor: "#f5f5f5" }}>
+                  <Typography variant="body2" color="textSecondary">
+                    <b>Bot:</b>
+                  </Typography>
+                  <ReactMarkdown>{typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}</ReactMarkdown>
+                </Paper>
+              )}
           </Box>
         ))}
         <div ref={chatEndRef} />

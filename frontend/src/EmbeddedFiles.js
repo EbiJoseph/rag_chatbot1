@@ -23,7 +23,7 @@ export default function EmbeddedFiles() {
   }, []);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Button
         variant="contained"
         color="secondary"
@@ -39,14 +39,16 @@ export default function EmbeddedFiles() {
       <Typography variant="h6" gutterBottom>
         Embedded Files
       </Typography>
-      <List dense>
-        {files.length === 0 && <ListItem><ListItemText primary="No embedded files yet." /></ListItem>}
-        {files.map((file, idx) => (
-          <ListItem key={idx}>
-            <ListItemText primary={file} />
-          </ListItem>
-        ))}
-      </List>
+      <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        <List dense>
+          {files.length === 0 && <ListItem><ListItemText primary="No embedded files yet." /></ListItem>}
+          {files.map((file, idx) => (
+            <ListItem key={idx}>
+              <ListItemText primary={file} />
+            </ListItem>
+          ))}
+        </List>
+      </Box>
     </Box>
   );
 }
