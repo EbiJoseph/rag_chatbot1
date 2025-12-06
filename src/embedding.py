@@ -4,7 +4,11 @@ import numpy as np
 import boto3
 import json
 import os, shutil
-from src.data_loader import load_all_documents
+from data_loader import load_all_documents
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 class EmbeddingPipeline:
     def __init__(self, model_id: str = "amazon.titan-embed-text-v2:0", chunk_size: int = 1000, chunk_overlap: int = 200, region_name: str = "us-east-1"):
@@ -33,7 +37,10 @@ class EmbeddingPipeline:
         if len(texts) == 0:
             print("[INFO] No chunks to embed. Returning empty array.")
             return np.array([])
-        for text in texts:
+        for idx, text in enumerate(texts, start=1):
+            if idx % 100 == 0:
+                print(f"[INFO] Processed {idx}/{len(texts)} chunks...")
+
             response = self.bedrock.invoke_model(
                 modelId=self.model_id,
                 body=json.dumps({"inputText": text}).encode("utf-8")
@@ -56,9 +63,9 @@ class EmbeddingPipeline:
         print(f"[INFO] Moved files from {uploaded_dir} to {embedded_dir}")
 
 # Example usage
-# if __name__ == "__main__":
-#     docs = load_all_documents("data")
-#     emb_pipe = EmbeddingPipeline()
-#     chunks = emb_pipe.chunk_documents(docs)
-#     embeddings = emb_pipe.embed_chunks(chunks)
-#     print("[INFO] Example embedding:", embeddings[0] if len(embeddings) > 0 else None)
+if __name__ == "__main__":
+    docs = load_all_documents("data/uploaded")
+    emb_pipe = EmbeddingPipeline()
+    chunks = emb_pipe.chunk_documents(docs)
+    embeddings = emb_pipe.embed_chunks(chunks)
+    print("[INFO] Example embedding:", embeddings[0] if len(embeddings) > 0 else None)
